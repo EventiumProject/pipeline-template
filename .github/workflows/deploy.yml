@@ -24,15 +24,12 @@ jobs:
             run: | 
                 if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
                     echo "ENV=prod" >> $GITHUB_ENV
-                    echo "ENV_FILE=${{ secrets.ENV_FILE }}" >> $GITHUB_ENV
                     echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH }}" >> $GITHUB_ENV
                 elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
                     echo "ENV=preprod" >> $GITHUB_ENV
-                    echo "ENV_FILE=${{ secrets.ENV_FILE_PREPROD }}" >> $GITHUB_ENV
                     echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH_PREPROD }}" >> $GITHUB_ENV
                 else 
                     echo "ENV=preprod" >> $GITHUB_ENV
-                    echo "ENV_FILE=${{ secrets.ENV_FILE_PREPROD }}" >> $GITHUB_ENV
                     echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH_PREPROD }}" >> $GITHUB_ENV
                 fi
 
@@ -53,11 +50,15 @@ jobs:
 
           - name: Setup Env File
             working-directory: deploy
-            run: | 
-               touch .env
-               echo "$ENV_FILE" >> .env
-               echo "" >> .env
-               echo "${{ inputs.docker-image-name }}=${{ steps.var.outputs.short_sha}}" >> .env
+            run: |
+                touch .env
+                if [[ "$ENV" == "prod" ]] then
+                    echo "${{ secrets.ENV_FILE }}" >> .env
+                else 
+                    echo "${{ secrets.ENV_FILE_PREPROD }}" >> .env
+                fi
+                echo "" >> .env
+                echo "${{ inputs.docker-image-name }}=${{ steps.var.outputs.short_sha}}" >> .env
             
           - name: Setup Docker Compose File
             working-directory: deploy
@@ -67,7 +68,7 @@ jobs:
           - name: Copy Files to Server
             working-directory: deploy
             run: |
-                rsync -avz .env docker-compose.yml Makefile deploy:/$DEPLOY_PATH/
+                rsync -avz .env docker-compose.yml Makefile deploy:$DEPLOY_PATH
 
           - name: Deploy Application
             run: | 
