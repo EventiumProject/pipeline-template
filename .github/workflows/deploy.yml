@@ -30,6 +30,10 @@ jobs:
                     echo "ENV=preprod" >> $GITHUB_ENV
                     echo "ENV_FILE=${{ secrets.ENV_FILE_PREPROD }}" >> $GITHUB_ENV
                     echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH_PREPROD }}" >> $GITHUB_ENV
+                else 
+                    echo "ENV=preprod" >> $GITHUB_ENV
+                    echo "ENV_FILE=${{ secrets.ENV_FILE_PREPROD }}" >> $GITHUB_ENV
+                    echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH_PREPROD }}" >> $GITHUB_ENV
                 fi
 
           - name: Setup SSH
