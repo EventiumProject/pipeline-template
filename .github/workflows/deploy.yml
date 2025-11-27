@@ -25,7 +25,7 @@ jobs:
                 if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
                     echo "ENV=prod" >> $GITHUB_ENV
                     echo "ENV_FILE=${{ secrets.ENV_FILE }}" >> $GITHUB_ENV
-                    echo "DEPLOY_PATH"=${{ secrets.DEPLOY_PATH }}" >> $GITHUB_ENV
+                    echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH }}" >> $GITHUB_ENV
                 elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
                     echo "ENV=preprod" >> $GITHUB_ENV
                     echo "ENV_FILE=${{ secrets.ENV_FILE_PREPROD }}" >> $GITHUB_ENV
