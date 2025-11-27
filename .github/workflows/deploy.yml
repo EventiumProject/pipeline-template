@@ -52,15 +52,17 @@ jobs:
                 EOF
 
           - name: Setup Env File
+            working-directory: deploy
             run: | 
-               cd deploy && touch .env
+               touch .env
                echo "$ENV_FILE" >> .env
                echo "" >> .env
                echo "${{ inputs.docker-image-name }}=${{ steps.var.outputs.short_sha}}" >> .env
             
           - name: Setup Docker Compose File
+            working-directory: deploy
             run: | 
-                cd deploy && mv docker-compose.$ENV.yml docker-compose.yml
+                mv docker-compose.$ENV.yml docker-compose.yml
 
           - name: Copy Files to Server
             working-directory: deploy
