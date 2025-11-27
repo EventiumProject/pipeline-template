@@ -60,7 +60,7 @@ jobs:
             
           - name: Setup Docker Compose File
             run: | 
-                cd deploy && mv docker-compose.ENV.yml docker-compose.yml
+                cd deploy && mv docker-compose.$ENV.yml docker-compose.yml
 
           - name: Copy Files to Server
             run: |
