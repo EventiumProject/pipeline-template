@@ -1,0 +1,74 @@
+name: Deploy Pipeline Template
+
+on:
+    workflow_call:
+        inputs:
+            docker-image-name:
+                description: 'Name of the Docker image'
+                required: true
+                type: string
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+          - name: Checkout Code
+            uses: actions/checkout@v4
+        
+          - name: Get Commit Sha
+            id: var
+            run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+          - name: Set up Github Environnement
+            run: | 
+                if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+                    echo "ENV=prod" >> $GITHUB_ENV
+                    echo "ENV_FILE=${{ secrets.ENV_FILE }}" >> $GITHUB_ENV
+                    echo "DEPLOY_PATH"=${{ secrets.DEPLOY_PATH }}" >> $GITHUB_ENV
+                elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+                    echo "ENV=preprod" >> $GITHUB_ENV
+                    echo "ENV_FILE=${{ secrets.ENV_FILE_PREPROD }}" >> $GITHUB_ENV
+                    echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH_PREPROD }}" >> $GITHUB_ENV
+                fi
+
+          - name: Setup SSH
+            uses: webfactory/ssh-agent@v0.5.4
+            with:
+                ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+          - name: Configure SSH Alias
+            run: |
+                mkdir -p ~/.ssh
+                cat >> ~/.ssh/config << EOF
+                Host deploy 
+                  HostName ${{ secrets.DEPLOY_HOST }}
+                  User ${{ secrets.DEPLOY_USER }}
+                  StrictHostKeyChecking no
+                EOF
+
+          - name: Setup Env File
+            run: | 
+               cd deploy && touch .env
+               echo "$ENV_FILE" >> .env
+               echo "" >> .env
+               echo "${{ inputs.docker-image-name }}=${{ steps.var.outputs.short_sha}}" >> .env
+            
+          - name: Setup Docker Compose File
+            run: | 
+                cd deploy && mv docker-compose.ENV.yml docker-compose.yml
+
+          - name: Copy Files to Server
+            run: |
+                rsync -avz .env docker-compose.yml Makefile deploy:/$DEPLOY_PATH/
+
+          - name: Deploy Application
+            run: | 
+                ssh deploy "cd $DEPLOY_PATH && make deploy"
+
+          - name: Trigger Discord Notification
+            uses: sarisia/actions-status-discord@v1
+            with:
+                webhook: ${{ secrets.DISCORD_WEBHOOK }}
+
+
