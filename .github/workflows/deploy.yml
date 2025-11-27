@@ -63,8 +63,9 @@ jobs:
                 cd deploy && mv docker-compose.$ENV.yml docker-compose.yml
 
           - name: Copy Files to Server
+            working-directory: deploy
             run: |
-                cd deploy && rsync -avz .env docker-compose.yml Makefile deploy:/$DEPLOY_PATH/
+                rsync -avz .env docker-compose.yml Makefile deploy:/$DEPLOY_PATH/
 
           - name: Deploy Application
             run: | 
