@@ -28,6 +28,9 @@ jobs:
                 elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
                     echo "ENV=preprod" >> $GITHUB_ENV
                     echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH_PREPROD }}" >> $GITHUB_ENV
+                else
+                    echo "ENV=preprod" >> $GITHUB_ENV
+                    echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH_PREPROD }}" >> $GITHUB_ENV
                 fi
 
           - name: Setup SSH
