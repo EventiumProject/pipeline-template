@@ -20,7 +20,7 @@ jobs:
             id: var
             run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-          - name: Set up Github Environnement
+          - name: Set up Github Environment
             run: | 
                 if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
                     echo "ENV=prod" >> $GITHUB_ENV
@@ -52,13 +52,13 @@ jobs:
             working-directory: deploy
             run: |
                 touch .env
-                if [[ "$ENV" == "prod" ]] then
-                    echo "${{ secrets.ENV_FILE }}" >> .env
+                if [[ "$ENV" == "prod" ]]; then
+                    echo "${{ secrets.ENV_FILE }}" > .env
                 else 
-                    echo "${{ secrets.ENV_FILE_PREPROD }}" >> .env
+                    echo "${{ secrets.ENV_FILE_PREPROD }}" > .env
                 fi
                 echo "" >> .env
-                echo "${{ inputs.docker-image-name }}=${{ steps.var.outputs.short_sha}}" >> .env
+                echo "${{ inputs.docker-image-name }}=${{ steps.var.outputs.short_sha }}" >> .env
             
           - name: Setup Docker Compose File
             working-directory: deploy
@@ -75,8 +75,7 @@ jobs:
                 ssh deploy "cd $DEPLOY_PATH && make deploy"
 
           - name: Trigger Discord Notification
+            if: always()
             uses: sarisia/actions-status-discord@v1
             with:
                 webhook: ${{ secrets.DISCORD_WEBHOOK }}
-
-
