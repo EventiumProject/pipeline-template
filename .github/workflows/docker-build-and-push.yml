@@ -53,4 +53,4 @@ jobs:
           push: ${{ inputs.docker-push }}
           tags: |
             ${{ inputs.image-name }}:latest
-            ${{ inputs.image-name }}:${{ steps.vars.outputs.short_sha }}
+            ${{ inputs.image-name }}:${{ steps.vars.outputs.short_sha }} 
