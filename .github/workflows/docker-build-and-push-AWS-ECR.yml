@@ -34,6 +34,18 @@ jobs:
               id: var
               run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
                             
+            - name: Debug inputs
+              run: |
+                    echo "=== DEBUG INPUTS ==="
+                    echo "dockerfile: ${{ inputs.dockerfile }}"
+                    echo "dockerfile-path: ${{ inputs.dockerfile-path }}"
+                    echo "build_context: ${{ inputs.build_context }}"
+                    echo "=== FILES ==="
+                    ls -la
+                    echo "=== DOCKERFILE ==="
+                    cat ${{ inputs.dockerfile }} || echo "Dockerfile not found!"
+
+
             - name: Build and Push to ECR
               uses: docker://ghcr.io/kciter/aws-ecr-action:latest
               with:
