@@ -70,6 +70,10 @@ jobs:
             run: |
                 rsync -avz .env docker-compose.yml Makefile deploy:$DEPLOY_PATH
 
+          - name: Login to Docker AWS ECR 
+            run: |
+                ssh deploy "aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 845813328282.dkr.ecr.eu-west-3.amazonaws.com"
+
           - name: Deploy Application
             run: | 
                 ssh deploy "cd $DEPLOY_PATH && make deploy"
