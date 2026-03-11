@@ -17,6 +17,11 @@ on:
                 required: false
                 type: string
                 default: '.'
+            build_args:
+                description: 'Docker build arguments'
+                required: false
+                type: string
+                default: ''
 env:
     AWS_REGION: eu-west-3
 
@@ -57,6 +62,7 @@ jobs:
                 context: ${{ inputs.build_context }}
                 file: ${{ inputs.dockerfile-path }}/${{ inputs.dockerfile }}
                 push: true
+                build-args: ${{ inputs.build_args }}
                 tags: |
                   ${{ steps.meta.outputs.image_uri }}:latest
                   ${{ steps.meta.outputs.image_uri }}:${{ steps.vars.outputs.short_sha }}
