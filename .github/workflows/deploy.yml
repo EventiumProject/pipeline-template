@@ -1,85 +1,85 @@
 name: Deploy Pipeline Template
 
 on:
-    workflow_call:
-        inputs:
-            docker-image-name:
-                description: 'Name of the Docker image'
-                required: true
-                type: string
+  workflow_call:
+    inputs:
+      docker-image-name:
+        description: "Name of the Docker image"
+        required: true
+        type: string
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest
 
-        steps:
-          - name: Checkout Code
-            uses: actions/checkout@v4
-        
-          - name: Get Commit Sha
-            id: var
-            run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-          - name: Set up Github Environment
-            run: | 
-                if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-                    echo "ENV=prod" >> $GITHUB_ENV
-                    echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH }}" >> $GITHUB_ENV
-                elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
-                    echo "ENV=preprod" >> $GITHUB_ENV
-                    echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH_PREPROD }}" >> $GITHUB_ENV
-                else
-                    echo "ENV=preprod" >> $GITHUB_ENV
-                    echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH_PREPROD }}" >> $GITHUB_ENV
-                fi
+      - name: Get Commit Sha
+        id: var
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-          - name: Setup SSH
-            uses: webfactory/ssh-agent@v0.5.4
-            with:
-                ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Set up Github Environment
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+              echo "ENV=prod" >> $GITHUB_ENV
+              echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH }}" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+              echo "ENV=preprod" >> $GITHUB_ENV
+              echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH_PREPROD }}" >> $GITHUB_ENV
+          else
+              echo "ENV=preprod" >> $GITHUB_ENV
+              echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH_PREPROD }}" >> $GITHUB_ENV
+          fi
 
-          - name: Configure SSH Alias
-            run: |
-                mkdir -p ~/.ssh
-                cat >> ~/.ssh/config << EOF
-                Host deploy 
-                  HostName ${{ secrets.DEPLOY_HOST }}
-                  User ${{ secrets.DEPLOY_USER }}
-                  StrictHostKeyChecking no
-                EOF
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-          - name: Setup Env File
-            working-directory: deploy
-            run: |
-                touch .env
-                if [[ "$ENV" == "prod" ]]; then
-                    echo "${{ secrets.ENV_FILE }}" > .env
-                else 
-                    echo "${{ secrets.ENV_FILE_PREPROD }}" > .env
-                fi
-                echo "" >> .env
-                echo "${{ inputs.docker-image-name }}=${{ steps.var.outputs.short_sha }}" >> .env
-            
-          - name: Setup Docker Compose File
-            working-directory: deploy
-            run: | 
-                mv docker-compose.$ENV.yml docker-compose.yml
+      - name: Configure SSH Alias
+        run: |
+          mkdir -p ~/.ssh
+          cat >> ~/.ssh/config << EOF
+          Host deploy 
+            HostName ${{ secrets.DEPLOY_HOST }}
+            User ${{ secrets.DEPLOY_USER }}
+            StrictHostKeyChecking no
+          EOF
 
-          - name: Copy Files to Server
-            working-directory: deploy
-            run: |
-                rsync -avz .env docker-compose.yml Makefile deploy:$DEPLOY_PATH
+      - name: Setup Env File
+        working-directory: deploy
+        run: |
+          touch .env
+          if [[ "$ENV" == "prod" ]]; then
+              echo "${{ secrets.ENV_FILE }}" > .env
+          else 
+              echo "${{ secrets.ENV_FILE_PREPROD }}" > .env
+          fi
+          echo "" >> .env
+          echo "${{ inputs.docker-image-name }}=${{ steps.var.outputs.short_sha }}" >> .env
 
-          - name: Login to Docker AWS ECR 
-            run: |
-                ssh deploy "aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 845813328282.dkr.ecr.eu-west-3.amazonaws.com"
+      - name: Setup Docker Compose File
+        working-directory: deploy
+        run: |
+          mv docker-compose.$ENV.yml docker-compose.yml
 
-          - name: Deploy Application
-            run: | 
-                ssh deploy "cd $DEPLOY_PATH && make deploy"
+      - name: Copy Files to Server
+        working-directory: deploy
+        run: |
+          rsync -avz .env docker-compose.yml Makefile deploy:$DEPLOY_PATH
 
-          - name: Trigger Discord Notification
-            if: always()
-            uses: sarisia/actions-status-discord@v1
-            with:
-                webhook: ${{ secrets.DISCORD_WEBHOOK }}
+      - name: Login to Docker AWS ECR
+        run: |
+          ssh deploy "aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 102259123927.dkr.ecr.eu-west-3.amazonaws.com"
+
+      - name: Deploy Application
+        run: |
+          ssh deploy "cd $DEPLOY_PATH && make deploy"
+
+      - name: Trigger Discord Notification
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
