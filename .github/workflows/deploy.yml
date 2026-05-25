@@ -77,9 +77,3 @@ jobs:
       - name: Deploy Application
         run: |
           ssh deploy "cd $DEPLOY_PATH && make deploy"
-
-      - name: Trigger Discord Notification
-        if: always()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
