@@ -1,76 +1,81 @@
 name: Build and Push Docker Image to AWS ECR
 on:
-    workflow_call:
-        inputs:
-            dockerfile:
-                description: 'File Name of the Dockerfile'
-                required: false
-                type: string
-                default: 'Dockerfile'
-            dockerfile-path:
-                description: 'Path of the Dockerfile'
-                required: false
-                type: string
-                default: '.'
-            build_context:
-                description: 'Docker build context'
-                required: false
-                type: string
-                default: '.'
-            build_args:
-                description: 'Docker build arguments'
-                required: false
-                type: string
-                default: ''
+  workflow_call:
+    inputs:
+      dockerfile:
+        description: "File Name of the Dockerfile"
+        required: false
+        type: string
+        default: "Dockerfile"
+      dockerfile-path:
+        description: "Path of the Dockerfile"
+        required: false
+        type: string
+        default: "."
+      build_context:
+        description: "Docker build context"
+        required: false
+        type: string
+        default: "."
+      build_args:
+        description: "Docker build arguments"
+        required: false
+        type: string
+        default: ""
 env:
-    AWS_REGION: eu-west-3
+  AWS_REGION: eu-west-3
 
 jobs:
-    docker_build_and_push_ecr:
-        runs-on: ubuntu-latest
-        
-        steps:
-            - name: Checkout Code
-              uses: actions/checkout@v4
-            
-            - name: Get Commit Sha
-              id: vars
-              run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-            
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v3
-            
-            - name: Configure AWS credentials
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                aws-region: ${{ env.AWS_REGION }}
-            
-            - name: Login to Amazon ECR
-              id: login-ecr
-              uses: aws-actions/amazon-ecr-login@v2
-            
-            - name: Extract metadata
-              id: meta
-              run: |
-                echo "image_uri=${{ steps.login-ecr.outputs.registry }}/${{ secrets.AWS_ECR_REPOSITORY }}" >> $GITHUB_OUTPUT
-            
-            - name: Build and push to Amazon ECR
-              uses: docker/build-push-action@v5
-              with:
-                context: ${{ inputs.build_context }}
-                file: ${{ inputs.dockerfile-path }}/${{ inputs.dockerfile }}
-                push: true
-                build-args: ${{ inputs.build_args }}
-                tags: |
-                  ${{ steps.meta.outputs.image_uri }}:latest
-                  ${{ steps.meta.outputs.image_uri }}:${{ steps.vars.outputs.short_sha }}
-                cache-from: type=gha
-                cache-to: type=gha,mode=max
-            
-            - name: Image Summary
-              run: |
-                echo "✅ Images pushed successfully!"
-                echo "🏷️  Latest: ${{ steps.meta.outputs.image_uri }}:latest"
-                echo "🏷️  SHA: ${{ steps.meta.outputs.image_uri }}:${{ steps.vars.outputs.short_sha }}"
+  docker_build_and_push_ecr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Get Commit Sha
+        id: vars
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Compute cache scope
+        id: cache_scope
+        run: |
+          echo "scope=$(echo '${{ inputs.build_args }}' | md5sum | cut -c1-8)" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          echo "image_uri=${{ steps.login-ecr.outputs.registry }}/${{ secrets.AWS_ECR_REPOSITORY }}" >> $GITHUB_OUTPUT
+
+      - name: Build and push to Amazon ECR
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.build_context }}
+          file: ${{ inputs.dockerfile-path }}/${{ inputs.dockerfile }}
+          push: true
+          build-args: ${{ inputs.build_args }}
+          tags: |
+            ${{ steps.meta.outputs.image_uri }}:latest
+            ${{ steps.meta.outputs.image_uri }}:${{ steps.vars.outputs.short_sha }}
+          cache-from: type=gha,scope=${{ steps.cache_scope.outputs.scope }}
+          cache-to: type=gha,mode=max,scope=${{ steps.cache_scope.outputs.scope }}
+
+      - name: Image Summary
+        run: |
+          echo "✅ Images pushed successfully!"
+          echo "🏷️  Latest: ${{ steps.meta.outputs.image_uri }}:latest"
+          echo "🏷️  SHA: ${{ steps.meta.outputs.image_uri }}:${{ steps.vars.outputs.short_sha }}"
