@@ -76,4 +76,8 @@ jobs:
 
       - name: Deploy Application
         run: |
-          ssh deploy "cd $DEPLOY_PATH && make deploy"
+          if [[ "$ENV" == "prod" ]]; then
+            ssh deploy "cd $DEPLOY_PATH && make deploy-prod"
+          else 
+            ssh deploy "cd $DEPLOY_PATH && make deploy-preprod"
+          fi
