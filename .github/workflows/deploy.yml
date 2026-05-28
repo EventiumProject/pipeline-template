@@ -11,6 +11,13 @@ on:
         description: "Environment (preprod or prod)"
         required: true
         type: string
+    secrets:
+      VAULT_ADDR:
+        required: true
+      VAULT_ROLE_ID:
+        required: true
+      VAULT_SECRET_ID:
+        required: true
 
 jobs:
   deploy:
