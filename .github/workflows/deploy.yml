@@ -11,6 +11,10 @@ on:
         description: "Environment (preprod or prod)"
         required: true
         type: string
+      app-name:
+        description: "Nom de l'app dans Vault (ex: EVENTIUM-API, CLIENT-APP)"
+        required: true
+        type: string
     secrets:
       VAULT_ADDR:
         required: true
@@ -44,6 +48,15 @@ jobs:
             EVENTIUM/data/INFRA DEPLOY_USER | DEPLOY_USER ;
             EVENTIUM/data/INFRA SSH_PRIVATE_KEY | SSH_PRIVATE_KEY
 
+      - name: Resolve Vault App Path
+        id: vault-path
+        run: |
+          if [[ "${{ inputs.environment }}" == "prod" ]]; then
+            echo "path=EVENTIUM/data/PROD/${{ inputs.app-name }}" >> $GITHUB_OUTPUT
+          else
+            echo "path=EVENTIUM/data/PREPROD/${{ inputs.app-name }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Fetch Vault Secrets — App
         id: vault-app
         uses: hashicorp/vault-action@v2
@@ -53,8 +66,8 @@ jobs:
           roleId: ${{ secrets.VAULT_ROLE_ID }}
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           secrets: |
-            EVENTIUM/data/${{ inputs.environment == 'prod' && 'PROD/EVENTIUM-CLIENT-APP' || 'PREPROD/CLIENT-APP' }} DEPLOY_PATH | DEPLOY_PATH ;
-            EVENTIUM/data/${{ inputs.environment == 'prod' && 'PROD/EVENTIUM-CLIENT-APP' || 'PREPROD/CLIENT-APP' }} ENV_FILE | ENV_FILE
+            ${{ steps.vault-path.outputs.path }} DEPLOY_PATH | DEPLOY_PATH ;
+            ${{ steps.vault-path.outputs.path }} ENV_FILE | ENV_FILE
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.5.4
